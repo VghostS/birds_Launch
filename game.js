@@ -138,8 +138,14 @@ class GameScene extends Phaser.Scene {
         this.load.spritesheet('bird_sheet', 'assets/bird.png', { frameWidth: 406, frameHeight: 368 });
         
         // Your custom monkey frames
-        this.load.spritesheet('monkey_idle', 'assets/monkey_idle.png', { frameWidth: 800, frameHeight: 450 });
-        this.load.spritesheet('monkey_throw', 'assets/monkey_throw.png', { frameWidth: 784, frameHeight: 441 });
+        this.load.spritesheet('monkey_idle', 'assets/monkey_idle.png', { frameWidth: 344.4444, frameHeight: 193.83333 });
+        this.load.spritesheet('monkey_throw', 'assets/monkey_throw.png', { frameWidth: 344.4444, frameHeight: 198.333333333333});
+
+        // --- NEW: Cooldown Nut Sprite Sheet ---
+        this.load.spritesheet('nut_fill_sheet', 'assets/nut_fill.png', { 
+            frameWidth: 400, // REPLACE WITH ACTUAL FRAME WIDTH
+            frameHeight: 225 // REPLACE WITH ACTUAL FRAME HEIGHT
+        });
     }
 
     create() {
@@ -166,8 +172,8 @@ class GameScene extends Phaser.Scene {
         this.nutsText = this.add.text(centerX - 300, 20, `Nuts: ${this.currentNuts}`, { fontFamily: 'Peralta', fontSize: '40px', fill: '#ffffff', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5, 0);
         this.birdsFedText = this.add.text(centerX + 300, 20, `Fed: 0/${this.totalBirds}`, { fontFamily: 'Peralta', fontSize: '40px', fill: '#ffffff', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5, 0);
 
-        this.cooldownBarBg = this.add.rectangle(centerX - 300, 80, 150, 10, 0x000000).setOrigin(0.5, 0);
-        this.cooldownBar = this.add.rectangle(centerX - 300, 80, 150, 10, 0x00ff00).setOrigin(0.5, 0);
+        // this.cooldownBarBg = this.add.rectangle(centerX - 300, 80, 150, 10, 0x000000).setOrigin(0.5, 0);
+        // this.cooldownBar = this.add.rectangle(centerX - 300, 80, 150, 10, 0x00ff00).setOrigin(0.5, 0);
 
         // Timer Tick Event
         this.levelTimer = this.time.addEvent({
@@ -183,12 +189,34 @@ class GameScene extends Phaser.Scene {
 
         // Your custom monkey positioning
         this.monkey = this.add.sprite(gameWidth - 1750, gameHeight - 520, 'monkey_idle');
-        this.monkey.scale = 0.5; 
+        this.monkey.scale = 1; 
         this.monkey.play('idle');
 
         this.monkey.on('animationcomplete-throw', () => {
             this.monkey.play('idle');
         });
+
+        // --- NEW: Cooldown Nut Setup ---
+        // Use frameRate instead of duration. If you have 11 frames (0 to 10) 
+        // and want it to take 1 second, a frameRate of 11 is perfect.
+        this.anims.create({ 
+            key: 'nut_fill_anim', 
+            frames: this.anims.generateFrameNumbers('nut_fill_sheet', { 
+                start: 0, 
+                end: 50 // Your actual last frame number
+            }), 
+            frameRate: 30, // Plays 11 frames per second
+            repeat: 0 
+        });
+
+        // 1. The Animated Nut (Hidden by default)
+        this.cooldownNut = this.add.sprite(this.monkey.x+50, this.monkey.y - 120, 'nut_fill_sheet');
+        this.cooldownNut.setScale(0.195); 
+        this.cooldownNut.setAlpha(0);   
+
+        // 2. The Static "Ready" Nut (Visible by default)
+        this.readyNut = this.add.sprite(this.monkey.x+50, this.monkey.y - 120, 'nut');
+        this.readyNut.setScale(0.5); // You can adjust this size later!
 
         // --- Bird Setup ---
         this.anims.create({ key: 'bird_fly', frames: this.anims.generateFrameNumbers('bird_sheet', { start: 0, end: 37 }), frameRate: 25, repeat: -1 });
@@ -259,13 +287,15 @@ class GameScene extends Phaser.Scene {
         this.lastThrowTime = this.time.now;
         this.updateUI();
 
-        // Cooldown Bar Animation
-        this.cooldownBar.width = 0;
-        this.tweens.add({
-            targets: this.cooldownBar,
-            width: 150,
-            duration: this.throwCooldown,
-            ease: 'Linear'
+        // --- NEW: Toggle Nuts and Play Animation ---
+        this.readyNut.setAlpha(0);    // Hide the static nut
+        this.cooldownNut.setAlpha(1); // Show the animation sheet
+        this.cooldownNut.play('nut_fill_anim');
+        
+        // When the animation finishes, swap them back!
+        this.cooldownNut.once('animationcomplete', () => {
+            this.cooldownNut.setAlpha(0);
+            this.readyNut.setAlpha(1);
         });
 
         this.monkey.play('throw');
@@ -277,15 +307,10 @@ class GameScene extends Phaser.Scene {
             new VisualNut(this, spawnX, spawnY, targetBird, 1.0);
         }, [], this); 
 
-        // --- NEW: The "Out of Ammo" Loss Check ---
-        // If we have 0 nuts, haven't fed all birds, and haven't already won...
+        // --- The "Out of Ammo" Loss Check ---
         if (this.currentNuts <= 0 && this.birdsFedCount < this.totalBirds && !this.isGameOver) {
-            
-            // We use a delayed call here (1500ms) so the game doesn't instantly end 
-            // the millisecond you click. This gives the player time to see the monkey 
-            // throw the last nut and watch it hit (or see the red X) before the screen fades to black.
             this.time.delayedCall(1500, () => {
-                if (!this.isGameOver) { // Double check in case the timer ran out during this 1.5 seconds
+                if (!this.isGameOver) { 
                     this.triggerGameOver(false);
                 }
             });
