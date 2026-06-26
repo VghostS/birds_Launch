@@ -1,3 +1,117 @@
+class MenuScene extends Phaser.Scene {
+    constructor() {
+        super({ key: 'MenuScene' });
+    }
+
+    preload() {
+        this.load.image('screenshot_monkey', 'assets/screenshot.png');
+    }
+
+    create() {
+        this.cameras.main.fadeIn(500, 0, 0, 0);
+
+        const width = this.scale.width; 
+        const height = this.scale.height; 
+
+        let bestLevel = this.registry.get('monkeyBestLevel') || 1;
+
+        // ==========================================
+        // LEFT SIDE: Game Preview Window
+        // ==========================================
+        
+        this.add.rectangle(0, 0, width / 2, height, 0x4caf50).setOrigin(0);
+        this.add.text(50, 20, 'Kodo Games', { fontFamily: 'Arial, sans-serif', fontSize: '45px', fill: '#ffffff', fontStyle: 'bold' });
+
+        let preview = this.add.sprite(width / 4, height * 0.44, 'screenshot_monkey');
+        if (preview.texture.key !== '__DEFAULT') {
+            preview.setScale(Math.min((width / 2) / preview.width, (height * 0.8) / preview.height)); 
+        }
+
+        this.add.rectangle(0, height * 0.75, width / 2, height * 0.25, 0x333333).setOrigin(0);
+        this.add.text(50, height * 0.82, 'Monkey Feeder', { fontFamily: 'Peralta', fontSize: '60px', fill: '#ffcc00' });
+        this.add.text(50, height * 0.90, 'Working Memory + Tracking', { fontFamily: 'Arial, sans-serif', fontSize: '30px', fill: '#ffffff' });
+
+        // ==========================================
+        // RIGHT SIDE: Stats and Play Buttons
+        // ==========================================
+        
+        this.add.rectangle(width / 2, 0, width / 2, height, 0xffffff).setOrigin(0);
+        this.add.text(width / 2 + 80, 80, 'Instructions', { fontFamily: 'Arial, sans-serif', fontSize: '45px', fill: '#4caf50', fontStyle: 'bold' });
+        
+        let descText = "Tap the flying birds to feed them a nut. They look exactly the same once fed, so you must use your working memory to remember who has already eaten!\n\nDo not feed the same bird twice.";
+        this.add.text(width / 2 + 80, 160, descText, { fontFamily: 'Arial, sans-serif', fontSize: '32px', fill: '#555555', wordWrap: { width: 750, useAdvancedWrap: true }, lineSpacing: 10 });
+
+        this.add.text(width / 2 + 80, 480, 'Best Stat', { fontFamily: 'Arial, sans-serif', fontSize: '40px', fill: '#4caf50', fontStyle: 'bold' });
+        this.add.text(width / 2 + 80, 540, `Level ${bestLevel}`, { fontFamily: 'Arial, sans-serif', fontSize: '50px', fill: '#333333', fontStyle: 'bold' });
+
+        // --- Split Play and Tutorial Buttons ---
+        let btnGraphics = this.add.graphics();
+        
+        let startX = width / 2 + 200; 
+        let btnY = height - 250;
+        let btnH = 100;
+        let btnRadius = 50;
+
+        let tutW = 100;
+        let playW = 440;
+        let playX = startX + tutW + 20; 
+
+        // 1. Draw '?' Tutorial Button
+        btnGraphics.fillStyle(0xeeeeee, 1);
+        btnGraphics.fillRoundedRect(startX, btnY, tutW, btnH, btnRadius);
+        this.add.text(startX + tutW / 2, btnY + btnH / 2, '?', { fontFamily: 'Arial, sans-serif', fontSize: '50px', fill: '#666666', fontStyle: 'bold' }).setOrigin(0.5);
+
+        // 2. Draw 'Play' Button
+        btnGraphics.fillStyle(0x4caf50, 1);
+        btnGraphics.fillRoundedRect(playX, btnY, playW, btnH, btnRadius);
+        this.add.text(playX + playW / 2, btnY + btnH / 2, 'Play', { fontFamily: 'Arial, sans-serif', fontSize: '40px', fill: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+
+        // 3. Interactive Zones
+        let tutZone = this.add.zone(startX + tutW / 2, btnY + btnH / 2, tutW, btnH).setInteractive();
+        let playZone = this.add.zone(playX + playW / 2, btnY + btnH / 2, playW, btnH).setInteractive();
+        
+        tutZone.on('pointerover', () => {
+            this.input.setDefaultCursor('pointer');
+            btnGraphics.fillStyle(0xdddddd, 1); 
+            btnGraphics.fillRoundedRect(startX, btnY, tutW, btnH, btnRadius);
+        });
+        tutZone.on('pointerout', () => {
+            this.input.setDefaultCursor('default');
+            btnGraphics.fillStyle(0xeeeeee, 1); 
+            btnGraphics.fillRoundedRect(startX, btnY, tutW, btnH, btnRadius);
+        });
+        tutZone.on('pointerdown', () => {
+            this.input.setDefaultCursor('default');
+            tutZone.disableInteractive(); 
+            playZone.disableInteractive();
+            this.cameras.main.fadeOut(400, 0, 0, 0);
+            this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+                this.scene.start('GameScene', { level: 'tutorial' }); 
+            });
+        });
+
+        playZone.on('pointerover', () => {
+            this.input.setDefaultCursor('pointer');
+            btnGraphics.fillStyle(0x66bb6a, 1); 
+            btnGraphics.fillRoundedRect(playX, btnY, playW, btnH, btnRadius);
+        });
+        playZone.on('pointerout', () => {
+            this.input.setDefaultCursor('default');
+            btnGraphics.fillStyle(0x4caf50, 1); 
+            btnGraphics.fillRoundedRect(playX, btnY, playW, btnH, btnRadius);
+        });
+        playZone.on('pointerdown', () => {
+            this.input.setDefaultCursor('default');
+            tutZone.disableInteractive(); 
+            playZone.disableInteractive();
+            this.cameras.main.fadeOut(400, 0, 0, 0);
+            this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+                this.scene.start('GameScene', { level: 1 }); 
+            });
+        });
+    }
+}
+
 class Bird extends Phaser.GameObjects.Sprite {
     constructor(scene, x, y, texture) {
         super(scene, x, y, texture);
@@ -6,7 +120,6 @@ class Bird extends Phaser.GameObjects.Sprite {
         this.setScale(0.4); 
         this.play('bird_fly'); 
 
-        // Your custom randomizations
         this.flySpeed = 200 + Math.random() * 200; 
         this.leftBoundary = 500;
         this.rightBoundary = scene.scale.width - 200; 
@@ -26,6 +139,9 @@ class Bird extends Phaser.GameObjects.Sprite {
     preUpdate(time, delta) {
         super.preUpdate(time, delta); 
 
+        // TWEAK 1: We removed the check that freezes birds. 
+        // Now they fly endlessly in the background even during the tutorial or game over!
+
         this.x += this.movingDirection * this.flySpeed * (delta / 1000);
 
         if (this.x >= this.rightBoundary) {
@@ -43,6 +159,9 @@ class Bird extends Phaser.GameObjects.Sprite {
     }
 
     onClick() {
+        // We only block the click interaction if a menu is open, not their movement.
+        if (this.scene.isPaused || this.scene.isGameOver) return;
+
         if (this.scene.canThrowNut()) {
             if (!this.hasGivenPoint) {
                 this.hasGivenPoint = true;
@@ -111,11 +230,13 @@ class GameScene extends Phaser.Scene {
     }
 
     init(data) {
-        // If data.level exists, use it. Otherwise, default to 1.
         this.currentLevel = data.level || 1;
         
-        // Define level parameters based on the current level
-        if (this.currentLevel === 1) {
+        if (this.currentLevel === 'tutorial') {
+            this.totalBirds = 3;  
+            this.currentNuts = 5; 
+            this.timeRemaining = 60; 
+        } else if (this.currentLevel === 1) {
             this.totalBirds = 5;
             this.currentNuts = 5;
             this.timeRemaining = 25;
@@ -127,6 +248,10 @@ class GameScene extends Phaser.Scene {
             this.totalBirds = 9;
             this.currentNuts = 9;
             this.timeRemaining = 35;
+        } else {
+            this.totalBirds = 9 + (this.currentLevel - 3);
+            this.currentNuts = 9 + (this.currentLevel - 3);
+            this.timeRemaining = 40;
         }
     }
 
@@ -137,18 +262,15 @@ class GameScene extends Phaser.Scene {
 
         this.load.spritesheet('bird_sheet', 'assets/bird.png', { frameWidth: 406, frameHeight: 368 });
         
-        // Your custom monkey frames
         this.load.spritesheet('monkey_idle', 'assets/monkey_idle.png', { frameWidth: 344.4444, frameHeight: 193.83333 });
         this.load.spritesheet('monkey_throw', 'assets/monkey_throw.png', { frameWidth: 344.4444, frameHeight: 198.333333333333});
 
-        // --- NEW: Cooldown Nut Sprite Sheet ---
-        this.load.spritesheet('nut_fill_sheet', 'assets/nut_fill.png', { 
-            frameWidth: 400, // REPLACE WITH ACTUAL FRAME WIDTH
-            frameHeight: 225 // REPLACE WITH ACTUAL FRAME HEIGHT
-        });
+        this.load.spritesheet('nut_fill_sheet', 'assets/nut_fill.png', { frameWidth: 400, frameHeight: 225 });
     }
 
     create() {
+        this.cameras.main.fadeIn(500, 0, 0, 0);
+
         const gameWidth = this.scale.width;
         const gameHeight = this.scale.height;
         const centerX = gameWidth / 2;
@@ -157,25 +279,17 @@ class GameScene extends Phaser.Scene {
         bg.setDisplaySize(gameWidth, gameHeight);
         this.tree = this.add.sprite(gameWidth - 1850, gameHeight - 580, 'tree');
 
-        // --- Game Manager Variables ---
-        // this.totalBirds = 5; 
-        // this.currentNuts = 5;
         this.birdsFedCount = 0;
-        // this.timeRemaining = 25; 
         this.isGameOver = false;
+        this.isPaused = false; 
 
         this.throwCooldown = 1000; 
         this.lastThrowTime = 0;
 
-        // --- Centered UI Setup ---
         this.timerText = this.add.text(centerX, 20, `Time: ${this.timeRemaining}s`, { fontFamily: 'Peralta', fontSize: '40px', fill: '#ffcc00', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5, 0);
         this.nutsText = this.add.text(centerX - 300, 20, `Nuts: ${this.currentNuts}`, { fontFamily: 'Peralta', fontSize: '40px', fill: '#ffffff', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5, 0);
         this.birdsFedText = this.add.text(centerX + 300, 20, `Fed: 0/${this.totalBirds}`, { fontFamily: 'Peralta', fontSize: '40px', fill: '#ffffff', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5, 0);
 
-        // this.cooldownBarBg = this.add.rectangle(centerX - 300, 80, 150, 10, 0x000000).setOrigin(0.5, 0);
-        // this.cooldownBar = this.add.rectangle(centerX - 300, 80, 150, 10, 0x00ff00).setOrigin(0.5, 0);
-
-        // Timer Tick Event
         this.levelTimer = this.time.addEvent({
             delay: 1000,
             callback: this.onTimerTick,
@@ -183,42 +297,21 @@ class GameScene extends Phaser.Scene {
             loop: true
         });
 
-        // --- Monkey Setup ---
         this.anims.create({ key: 'idle', frames: this.anims.generateFrameNumbers('monkey_idle', { start: 0, end: 53 }), frameRate: 10, repeat: -1 });
         this.anims.create({ key: 'throw', frames: this.anims.generateFrameNumbers('monkey_throw', { start: 0, end: 8 }), frameRate: 15, repeat: 0 });
 
-        // Your custom monkey positioning
         this.monkey = this.add.sprite(gameWidth - 1750, gameHeight - 520, 'monkey_idle');
         this.monkey.scale = 1; 
         this.monkey.play('idle');
+        this.monkey.on('animationcomplete-throw', () => { this.monkey.play('idle'); });
 
-        this.monkey.on('animationcomplete-throw', () => {
-            this.monkey.play('idle');
-        });
-
-        // --- NEW: Cooldown Nut Setup ---
-        // Use frameRate instead of duration. If you have 11 frames (0 to 10) 
-        // and want it to take 1 second, a frameRate of 11 is perfect.
-        this.anims.create({ 
-            key: 'nut_fill_anim', 
-            frames: this.anims.generateFrameNumbers('nut_fill_sheet', { 
-                start: 0, 
-                end: 50 // Your actual last frame number
-            }), 
-            frameRate: 30, // Plays 11 frames per second
-            repeat: 0 
-        });
-
-        // 1. The Animated Nut (Hidden by default)
+        this.anims.create({ key: 'nut_fill_anim', frames: this.anims.generateFrameNumbers('nut_fill_sheet', { start: 0, end: 50 }), frameRate: 30, repeat: 0 });
         this.cooldownNut = this.add.sprite(this.monkey.x+50, this.monkey.y - 120, 'nut_fill_sheet');
-        this.cooldownNut.setScale(0.195); 
-        this.cooldownNut.setAlpha(0);   
+        this.cooldownNut.setScale(0.195).setAlpha(0);   
 
-        // 2. The Static "Ready" Nut (Visible by default)
         this.readyNut = this.add.sprite(this.monkey.x+50, this.monkey.y - 120, 'nut');
-        this.readyNut.setScale(0.5); // You can adjust this size later!
+        this.readyNut.setScale(0.5); 
 
-        // --- Bird Setup ---
         this.anims.create({ key: 'bird_fly', frames: this.anims.generateFrameNumbers('bird_sheet', { start: 0, end: 37 }), frameRate: 25, repeat: -1 });
 
         this.birds = []; 
@@ -228,33 +321,77 @@ class GameScene extends Phaser.Scene {
             this.birds.push(newBird);
         }
 
-        if(this.currentLevel === 1) {
-        // Add the instructional text to the center of the screen
-        let instructions = this.add.text(centerX, gameHeight-150, 
-            "Tap the bird to throw the nut.\nThey look the same once fed,\nso remember who's eaten!", { 
-            fontFamily: 'Peralta', // <-- Right here!
-            fontSize: '35px', 
-            fill: '#ffffff', 
-            align: 'center',
-            stroke: '#000000', 
-            strokeThickness: 8 
-        }).setOrigin(0.5);
+        if(this.currentLevel === 'tutorial') {
+            this.runTutorialSequence(centerX, gameHeight / 2, gameWidth, gameHeight);
+        }
+    }
 
-        // Tween to fade it out after a delay
-        this.tweens.add({
-            targets: instructions,
-            alpha: 0,           // Fade to transparent
-            delay: 4000,        // Wait 4 seconds before fading
-            duration: 1000,     // Take 1 second to fade out
-            onComplete: () => instructions.destroy() // Remove from memory when done
+    runTutorialSequence(cx, cy, gw, gh) {
+        this.isPaused = true; 
+
+        let tutGroup = this.add.container(0, 0).setDepth(100);
+        let bgBlocker = this.add.rectangle(cx, cy, gw, gh, 0x000000, 0.6).setInteractive();
+
+        let modalBg = this.add.graphics();
+        modalBg.fillStyle(0xffffff, 1);
+        modalBg.fillRoundedRect(cx - 400, cy - 200, 800, 400, 30);
+
+        let step = 1;
+
+        // TWEAK 3: Adjusted the Y positions to completely separate the Title and Rules text
+        let title = this.add.text(cx, cy - 140, 'Tutorial: The Stats', { fontFamily: 'Peralta', fontSize: '45px', fill: '#4caf50' }).setOrigin(0.5);
+        let instructions = this.add.text(cx, cy - 10, "Look at the top of the screen!\n\nYou have a limited Time limit and a specific number of Nuts.\nYou must feed all the birds before you run out of either.", { fontFamily: 'Arial, sans-serif', fontSize: '28px', fill: '#333333', align: 'center', lineSpacing: 10 }).setOrigin(0.5);
+
+        let btnGraphics = this.add.graphics();
+        btnGraphics.fillStyle(0x4caf50, 1);
+        btnGraphics.fillRoundedRect(cx - 125, cy + 100, 250, 60, 20);
+        let btnText = this.add.text(cx, cy + 130, 'Next Steps', { fontFamily: 'Arial, sans-serif', fontSize: '28px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5);
+
+        let btnZone = this.add.zone(cx, cy + 130, 250, 60).setInteractive();
+
+        btnZone.on('pointerover', () => {
+            this.input.setDefaultCursor('pointer');
+            btnGraphics.clear();
+            btnGraphics.fillStyle(0x66bb6a, 1);
+            btnGraphics.fillRoundedRect(cx - 125, cy + 100, 250, 60, 20);
         });
-    }
-    }
+        
+        btnZone.on('pointerout', () => {
+            this.input.setDefaultCursor('default');
+            btnGraphics.clear();
+            btnGraphics.fillStyle(0x4caf50, 1);
+            btnGraphics.fillRoundedRect(cx - 125, cy + 100, 250, 60, 20);
+        });
 
-    // --- Core Logic ---
+        btnZone.on('pointerdown', () => {
+            this.input.setDefaultCursor('default');
+            
+            if (step === 1) {
+                step = 2;
+                title.setText("Tutorial: The Rules");
+                instructions.setText("1. Tap a flying bird to throw a nut.\n2. Once fed, birds look EXACTLY the same.\n3. Do NOT feed the same bird twice!\n\nTry feeding these 3 birds now.");
+                btnText.setText("Play Practice");
+            } else if (step === 2) {
+                this.tweens.add({
+                    targets: tutGroup,
+                    alpha: 0,
+                    duration: 300,
+                    onComplete: () => {
+                        tutGroup.destroy();
+                        this.isPaused = false; 
+                    }
+                });
+            }
+        });
+
+        tutGroup.add([bgBlocker, modalBg, title, instructions, btnGraphics, btnText, btnZone]);
+        
+        tutGroup.setScale(0.9);
+        this.tweens.add({ targets: tutGroup, scale: 1, duration: 300, ease: 'Back.easeOut' });
+    }
 
     onTimerTick() {
-        if (this.isGameOver) return;
+        if (this.isGameOver || this.isPaused) return; 
 
         this.timeRemaining--;
         this.timerText.setText(`Time: ${this.timeRemaining}s`);
@@ -267,19 +404,8 @@ class GameScene extends Phaser.Scene {
     canThrowNut() {
         let now = this.time.now;
         if (now - this.lastThrowTime < this.throwCooldown) return false;
-        if (this.currentNuts <= 0 || this.isGameOver) return false;
+        if (this.currentNuts <= 0 || this.isGameOver || this.isPaused) return false;
         return true;
-    }
-
-    birdFed() {
-        this.birdsFedCount++;
-        this.updateUI();
-        
-        // We ONLY check for the Win condition here now.
-        // We will check for the Lose condition after the nut is actually thrown.
-        if (this.birdsFedCount >= this.totalBirds) {
-            this.triggerGameOver(true);
-        } 
     }
 
     monkeyThrowAt(targetBird) {
@@ -287,12 +413,10 @@ class GameScene extends Phaser.Scene {
         this.lastThrowTime = this.time.now;
         this.updateUI();
 
-        // --- NEW: Toggle Nuts and Play Animation ---
-        this.readyNut.setAlpha(0);    // Hide the static nut
-        this.cooldownNut.setAlpha(1); // Show the animation sheet
+        this.readyNut.setAlpha(0);    
+        this.cooldownNut.setAlpha(1); 
         this.cooldownNut.play('nut_fill_anim');
         
-        // When the animation finishes, swap them back!
         this.cooldownNut.once('animationcomplete', () => {
             this.cooldownNut.setAlpha(0);
             this.readyNut.setAlpha(1);
@@ -300,14 +424,12 @@ class GameScene extends Phaser.Scene {
 
         this.monkey.play('throw');
 
-        // Delay nut spawn to match monkey animation
         this.time.delayedCall(500, () => {
             let spawnX = this.monkey.x + 50; 
             let spawnY = this.monkey.y - 20; 
             new VisualNut(this, spawnX, spawnY, targetBird, 1.0);
         }, [], this); 
 
-        // --- The "Out of Ammo" Loss Check ---
         if (this.currentNuts <= 0 && this.birdsFedCount < this.totalBirds && !this.isGameOver) {
             this.time.delayedCall(1500, () => {
                 if (!this.isGameOver) { 
@@ -321,8 +443,6 @@ class GameScene extends Phaser.Scene {
         this.birdsFedCount++;
         this.updateUI();
         
-        // We ONLY check for the Win condition here now.
-        // We will check for the Lose condition after the nut is actually thrown.
         if (this.birdsFedCount >= this.totalBirds) {
             this.triggerGameOver(true);
         }
@@ -338,46 +458,102 @@ class GameScene extends Phaser.Scene {
         this.birdsFedText.setText(`Fed: ${this.birdsFedCount}/${this.totalBirds}`);
     }
 
-    // --- End Game & Transitions ---
     triggerGameOver(won) {
         if (this.isGameOver) return;
         this.isGameOver = true;
-        this.levelTimer.remove(); // Stop the timer
+        this.levelTimer.remove(); 
 
-        // Delay the UI pop-up slightly to let the nut hit the bird
+        if (won && this.currentLevel !== 'tutorial') {
+            let bestLevel = this.registry.get('monkeyBestLevel') || 1;
+            if (this.currentLevel >= bestLevel) {
+                this.registry.set('monkeyBestLevel', this.currentLevel + 1);
+            }
+        }
+
         this.time.delayedCall(1000, () => {
-            const centerX = this.scale.width / 2;
-            const centerY = this.scale.height / 2;
+            const cx = this.scale.width / 2;
+            const cy = this.scale.height / 2;
 
-            // Create a black screen overlay (alpha 0 to start)
-            let overlay = this.add.rectangle(centerX, centerY, this.scale.width, this.scale.height, 0x000000);
+            // TWEAK 2: The New Clean End-Game Modal Layout
+            let endGroup = this.add.container(0, 0).setDepth(100);
+
+            // Dark Dimmer Overlay
+            let overlay = this.add.rectangle(cx, cy, this.scale.width, this.scale.height, 0x000000);
             overlay.setAlpha(0);
 
-            // Fade in the black overlay (Equivalent to blackANim in Unity)
+            let modalBg = this.add.graphics();
+            
+            // 1. White Base Rectangle
+            modalBg.fillStyle(0xffffff, 1);
+            modalBg.fillRoundedRect(cx - 300, cy - 200, 600, 400, 30);
+            
+            // 2. Dynamic Colored Header (Green for Win, Red for Loss)
+            let headerColor = won ? 0x4caf50 : 0xf44336;
+            modalBg.fillStyle(headerColor, 1);
+            modalBg.fillRoundedRect(cx - 300, cy - 200, 600, 100, 30);
+            modalBg.fillRect(cx - 300, cy - 150, 600, 50); // Flattens the bottom corners of the header!
+
+            // 3. Dynamic Title
+            let titleStr = won ? "LEVEL COMPLETE" : "GAME OVER";
+            if (this.currentLevel === 'tutorial') titleStr = won ? "TUTORIAL COMPLETE" : "TUTORIAL FAILED";
+            let title = this.add.text(cx, cy - 150, titleStr, { fontFamily: 'Arial, sans-serif', fontSize: '40px', fill: '#ffffff', fontStyle: 'bold' }).setOrigin(0.5);
+
+            // 4. Score Calculation & Zoom Text
+            let scoreText = "";
+            if (this.currentLevel !== 'tutorial' && won) {
+                // Generate a satisfying pseudo-score based on time and accuracy
+                let calcScore = (this.timeRemaining * 10) + (this.currentNuts * 20) + (this.birdsFedCount * 50);
+                scoreText = `Score: ${calcScore}`;
+            } else if (this.currentLevel === 'tutorial' && won) {
+                scoreText = "Great Job!";
+            } else {
+                scoreText = "Try Again!";
+            }
+
+            let scoreDisplay = this.add.text(cx, cy, scoreText, { fontFamily: 'Arial, sans-serif', fontSize: '60px', fill: '#333333', fontStyle: 'bold' }).setOrigin(0.5);
+            scoreDisplay.setScale(0); // Set to 0 so we can zoom it in later!
+
+            // 5. Blinking Action Prompt
+            let promptStr = "";
+            if (this.currentLevel === 'tutorial') {
+                promptStr = won ? "Click to Return to Menu" : "Click to Retry Tutorial";
+            } else {
+                promptStr = won ? "Click for Next Level" : "Click to Return to Menu";
+            }
+            let promptText = this.add.text(cx, cy + 120, promptStr, { fontFamily: 'Arial, sans-serif', fontSize: '28px', fill: '#666666' }).setOrigin(0.5);
+            promptText.setAlpha(0); // Hidden until zoom finishes
+
+            endGroup.add([overlay, modalBg, title, scoreDisplay, promptText]);
+
+            // The Animation Sequence
             this.tweens.add({
                 targets: overlay,
                 alpha: 0.8,
-                duration: 1000,
+                duration: 500,
                 onComplete: () => {
-                    // Show Win/Loss Text
-                    let message = won ? "YOU WIN!" : "GAME OVER";
-                    let color = won ? "#00ff00" : "#ff0000";
-                    
-                    this.add.text(centerX, centerY - 50, message, {fontFamily: 'Peralta', fontSize: '100px', fill: color, fontStyle: 'bold' }).setOrigin(0.5);
-                    let promptString = won ? "Click anywhere for Next Level!" : "Click anywhere to Restart Level!";
-                    let restartText = this.add.text(centerX, centerY + 80, promptString, { fontSize: '40px', fill: '#ffffff' }).setOrigin(0.5);
+                    // Zoom in the Score text!
+                    this.tweens.add({
+                        targets: scoreDisplay,
+                        scale: 1,
+                        duration: 500,
+                        ease: 'Back.easeOut',
+                        onComplete: () => {
+                            // Start blinking the bottom prompt text
+                            this.tweens.add({ targets: promptText, alpha: 1, duration: 800, yoyo: true, repeat: -1 });
 
-                    // Blink the restart text
-                    this.tweens.add({ targets: restartText, alpha: 0, duration: 800, yoyo: true, repeat: -1 });
-
-                    // Wait for a click to reload the scene (Equivalent to SceneManager.LoadScene)
-                    this.input.once('pointerdown', () => {
-                        if (won) {
-                            // Go to next level!
-                            this.scene.restart({ level: this.currentLevel + 1 });
-                        } else {
-                            // Restart current level on loss
-                            this.scene.restart({ level: this.currentLevel });
+                            // Finally, activate the click-to-continue logic
+                            this.input.once('pointerdown', () => {
+                                this.cameras.main.fadeOut(500, 0, 0, 0);
+                                this.cameras.main.once(Phaser.Cameras.Scene2D.Events.FADE_OUT_COMPLETE, () => {
+                                    if (this.currentLevel === 'tutorial') {
+                                        if (won) this.scene.start('MenuScene');
+                                        else this.scene.restart({ level: 'tutorial' });
+                                    } else {
+                                        if (won) this.scene.restart({ level: this.currentLevel + 1 });
+                                        else this.scene.start('MenuScene');
+                                    }
+                                });
+                            });
                         }
                     });
                 }
@@ -398,7 +574,7 @@ const config = {
         default: 'arcade',
         arcade: { debug: false }
     },
-    scene: [GameScene]
+    scene: [MenuScene, GameScene]
 };
 
 const game = new Phaser.Game(config);
