@@ -307,7 +307,7 @@ class GameScene extends Phaser.Scene {
 
         this.anims.create({ key: 'nut_fill_anim', frames: this.anims.generateFrameNumbers('nut_fill_sheet', { start: 0, end: 50 }), frameRate: 30, repeat: 0 });
         this.cooldownNut = this.add.sprite(this.monkey.x+50, this.monkey.y - 120, 'nut_fill_sheet');
-        this.cooldownNut.setScale(0.195).setAlpha(0);   
+        this.cooldownNut.setScale(0.4).setAlpha(0);   
 
         this.readyNut = this.add.sprite(this.monkey.x+50, this.monkey.y - 120, 'nut');
         this.readyNut.setScale(0.5); 
